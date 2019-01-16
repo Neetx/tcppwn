@@ -1,5 +1,4 @@
 tcppwn
-
 ===========
 
 Python tool to attack integrity of TCP communications.<br/>
@@ -51,6 +50,7 @@ pip install -r requirements.txt
 
 ### Usage:
 ```
+chmod +x tcppwn.py
 sudo ./tcppwn.py <interface> <victimIP> <gatewayIP> <port> <stringtofind> <stringtoinject>
 ```
 
