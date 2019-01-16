@@ -41,6 +41,9 @@ Sequence number, ACK number, length and checksum are manipulated to perform a st
 COMING SOON: More explanations.
 
 ### Setup:
+
+LINUX SUPPORT ONLY.
+
 ```
 git clone https://github.com/Neetx/tcppwn
 apt install python-nfqueue
