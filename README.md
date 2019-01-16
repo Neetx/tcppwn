@@ -3,7 +3,7 @@ tcppwn
 
 Python tool to attack integrity of TCP communications.<br/>
 
-Copyright (C) 2018  Neetx
+Copyright (C) 2019  Neetx
 
 tcppwn is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
