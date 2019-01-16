@@ -254,8 +254,12 @@ def main():
     acks = {}
     sended = False
 
+    if os.geteuid() != 0:
+        print "[!] Error! You must run tcppwn with root privileges. Exiting.."
+        sys.exit(1)
+
     if len(sys.argv) != 7:
-        print "[!] Error! Bad arguments.\nUsage: ./tcppwn.py <interface> <victimIP> <gatewayIP> <port> <stringtofind> <stringtoinject>"
+        print "[!] Error! Bad arguments.\nUsage: sudo ./tcppwn.py <interface> <victimIP> <gatewayIP> <port> <stringtofind> <stringtoinject>"
         print "Example: ./tcppwn.py wlan0 192.168.0.2 192.168.0.3 80 FINDME INJECTME"
         sys.exit(1)
 
